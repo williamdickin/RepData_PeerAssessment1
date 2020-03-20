@@ -1,25 +1,114 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
+title: 'Reproducible Research: Peer Assessment 1'
+output:
   html_document:
-    keep_md: true
+    keep_md: yes
+  pdf_document: default
 ---
 
 
 ## Loading and preprocessing the data
+`
+```{r echo = TRUE}
 
+unzip(zipfile = 'activity.zip')
+activity <- read.csv('activity.csv')
+
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r echo = TRUE}
 
+total_steps <- aggregate(steps ~ date, data = activity, FUN = mean, na.rm = TRUE)
+
+mean(total_steps$steps, na.rm = TRUE)
+median(total_steps$steps, na.rm = TRUE)
+
+
+```
+
+```{r echo = TRUE}
+
+hist(total_steps$steps)
+
+
+```
 
 
 ## What is the average daily activity pattern?
 
+```{r echo = TRUE}
+
+avg_steps <- aggregate(steps ~ interval, data = activity,FUN = mean, na.rm = TRUE)
+with(avg_steps, plot(x = interval, y = steps, type = "l"))
+```
+```{r echo = TRUE}
+avg_steps$interval[which.max(avg_steps$steps)]
+```
 
 
-## Imputing missing values
+1.Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NA\color{red}{\verb|NA|}NAs)
+
+```{r echo = TRUE}
+sum(!complete.cases(activity))
+```
+
+
+2.Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+Impute with mean for that day.
+
+
+3.Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r echo = TRUE}
+activity_impute <- activity
+activity_impute$steps[is.na(activity$steps)] <- merge(activity, total_steps, by = "date")$steps.y[is.na(activity$steps)]
+
+```
+
+
+4.Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r echo = TRUE}
+total_steps_impute <- aggregate(steps ~ date, data = activity_impute, FUN = mean)
+
+hist(total_steps_impute$steps)
+
+mean(total_steps_impute$steps)
+median(total_steps_impute$steps)
+
+```
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1.Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+
+```{r echo = TRUE}
+dayofweek <- weekdays(as.Date(activity$date), abb = TRUE)
+
+activity$weekend <- as.factor(ifelse(dayofweek %in% c("Sat", "Sun"), "weekend", "weekday"))
+
+avg_steps_by_weekday <- aggregate(steps ~ weekend, data = activity,FUN = mean, na.rm = TRUE)
+
+avg_steps_by_weekday
+
+```
+
+
+2.Make a panel plot containing a time series plot (i.e. type = "l" of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+
+```{r echo = TRUE}
+week <- aggregate(steps ~ weekend + interval, data = activity,FUN = mean, na.rm = TRUE)
+
+par(mfrow = c(2,1))
+with(week[week$weekend == "weekday",], plot(x = interval, y = steps, type = "l", main = "Weekday"))
+with(week[week$weekend == "weekend",], plot(x = interval, y = steps, type = "l", main = "Weekend"))
+```
+
+
